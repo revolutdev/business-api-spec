@@ -1,0 +1,287 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Revolut for Business OpenAPI
+servers:
+  - url: https://b2b.revolut.com/api/1.0
+  - url: https://sandbox-b2b.revolut.com/api/1.0
+paths:
+  /payment-drafts:
+    post:
+      summary: Create a new payment draft
+      operationId: createPaymentDraft
+      security:
+        - AccessToken: [write]
+      tags:
+        - payment-drafts
+      requestBody:
+        description: Payment draft info
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentDraftRequest"
+      responses:
+        '201':
+          description: Id of an added payment draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePaymentDraftResponse"
+        '204':
+          description: No payments provided
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      summary: List all payment drafts
+      operationId: getPaymentDrafts
+      security:
+        - AccessToken: [read]
+      tags:
+        - payment-drafts
+      responses:
+        '200':
+          description: List of payment drafts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDraftsResponse"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /payment-drafts/{paymentDraftId}:
+    get:
+      summary: Payment draft info
+      operationId: getPaymentDraft
+      security:
+        - AccessToken: [read]
+      tags:
+        - payment-drafts
+      parameters:
+        - name: paymentDraftId
+          in: path
+          required: true
+          description: The id of the payment draft to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment draft info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDraftResponse"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete the payment draft
+      operationId: deletePaymentDraft
+      security:
+        - AccessToken: [write]
+      tags:
+        - payment-drafts
+      parameters:
+        - name: paymentDraftId
+          in: path
+          required: true
+          description: The id of the payment draft to delete
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Payment draft deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+  schemas:
+    CreatePaymentDraftRequest:
+      type: object
+      required:
+        - payments
+      properties:
+        title:
+          type: string
+        schedule_for:
+          type: string
+          format: date
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentRequest"
+    PaymentRequest:
+      type: object
+      required:
+        - account_id
+        - receiver
+        - amount
+        - currency
+        - reference
+      properties:
+        account_id:
+          type: string
+        receiver:
+          $ref: "#/components/schemas/PaymentReceiver"
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+        reference:
+          type: string
+    PaymentReceiver:
+      type: object
+      required:
+        - counterparty_id
+      properties:
+        counterparty_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+    CreatePaymentDraftResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: number
+    PaymentDraftsResponse:
+      type: object
+      required:
+        - payment_orders
+      properties:
+        payment_orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentOrderInfo"
+    PaymentOrderInfo:
+      type: object
+      required:
+        - id
+        - payments_count
+      properties:
+        id:
+          type: string
+          format: uuid
+        scheduled_for:
+          type: string
+          format: date
+        title:
+          type: string
+        payments_count:
+          type: integer
+    PaymentDraftResponse:
+      type: object
+      required:
+        - payments
+      properties:
+        scheduled_for:
+          type: string
+          format: date
+        title:
+          type: string
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentInfo"
+    PaymentInfo:
+      type: object
+      required:
+        - id
+        - amount
+        - account_id
+        - receiver
+        - state
+        - current_charge_options
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          $ref: "#/components/schemas/Amount"
+        currency:
+          $ref: "#/components/schemas/Currency"
+        account_id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+        receiver:
+          $ref: "#/components/schemas/PaymentReceiver"
+        state:
+          $ref: "#/components/schemas/PaymentState"
+        reason:
+          type: string
+        error_message:
+          type: string
+        current_charge_options:
+          type: object
+          required:
+            - from
+            - to
+          properties:
+            from:
+              $ref: "#/components/schemas/Amount"
+            to:
+              $ref: "#/components/schemas/Amount"
+            rate:
+              type: string
+            fee:
+              $ref: "#/components/schemas/Amount"
+    PaymentState:
+      enum:
+        - CREATED
+        - PENDING
+        - COMPLETED
+        - REVERTED
+        - DECLINED
+        - CANCELLED
+        - FAILED
+        - DELETED
+    Amount:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+    CountryCode:
+      type: string
+      pattern: "^[A-Z]{2,3}$"
+    Currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+    Error:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: integer
+        message:
+          type: string

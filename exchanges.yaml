@@ -1,0 +1,179 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Revolut for Business OpenAPI
+servers:
+  - url: https://b2b.revolut.com/api/1.0
+  - url: https://sandbox-b2b.revolut.com/api/1.0
+paths:
+  /rate:
+    get:
+      summary: Get exchange rate
+      operationId: getRate
+      security:
+        - AccessToken: [read]
+      tags:
+        - exchange
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: The currency you would like to exchange from
+          schema:
+            $ref: "#/components/schemas/Currency"
+        - name: to
+          in: query
+          required: true
+          description: The currency you would like to exchange to
+          schema:
+            $ref: "#/components/schemas/Currency"
+        - name: amount
+          in: query
+          required: false
+          description: Exchange amount, default is 1.00
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: Exchange rate info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeRateResponse"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /exchange:
+    post:
+      summary: Exchange money
+      operationId: exchangeMoney
+      security:
+        - AccessToken: [pay]
+      tags:
+        - exchange
+      requestBody:
+        description: Exchange info
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExchangeRequest"
+      responses:
+        '200':
+          description: Exchange operation info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeResponse"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+  schemas:
+    ExchangeRateResponse:
+      type: object
+      required:
+        - from
+        - to
+        - rate
+        - fee
+        - rate_date
+      properties:
+        from:
+          $ref: "#/components/schemas/Amount"
+        to:
+          $ref: "#/components/schemas/Amount"
+        rate:
+          type: number
+          format: double
+        fee:
+          $ref: "#/components/schemas/Amount"
+        rate_date:
+          type: string
+          format: date-time
+    ExchangeRequest:
+      type: object
+      required:
+        - from
+        - to
+        - request_id
+      properties:
+        from:
+          $ref: "#/components/schemas/ExchangePart"
+        to:
+          $ref: "#/components/schemas/ExchangePart"
+        reference:
+          type: string
+        request_id:
+          type: string
+    ExchangePart:
+      type: object
+      required:
+        - account_id
+        - currency
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        currency:
+          $ref: "#/components/schemas/Currency"
+        amount:
+          type: number
+          format: double
+    ExchangeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        reason_code:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        state:
+          $ref: "#/components/schemas/TransactionState"
+    TransactionState:
+      enum:
+        - created
+        - pending
+        - completed
+        - declined
+        - failed
+    Amount:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+    Currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+    Error:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: integer
+        message:
+          type: string

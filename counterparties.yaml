@@ -1,0 +1,274 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Revolut for Business OpenAPI
+servers:
+  - url: https://b2b.revolut.com/api/1.0
+  - url: https://sandbox-b2b.revolut.com/api/1.0
+paths:
+  /counterparties:
+    get:
+      summary: List all counterparties
+      operationId: getCounterparties
+      security:
+        - AccessToken: [read]
+      tags:
+        - counterparties
+      responses:
+        '200':
+          description: List of business counterparties
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Counterparties"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /counterparty/{counterpartyId}:
+    get:
+      summary: Info for a specific counterparty
+      operationId: getCounterparty
+      security:
+        - AccessToken: [read]
+      tags:
+        - accounts
+      parameters:
+        - name: counterpartyId
+          in: path
+          required: true
+          description: The id of the counterparty to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Counterparty"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete the counterparty
+      operationId: deleteCounterparty
+      security:
+        - AccessToken: [write]
+      tags:
+        - accounts
+      parameters:
+        - name: counterpartyId
+          in: path
+          required: true
+          description: The id of the counterparty to delete
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Counterparty deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /counterparty:
+    post:
+      summary: Create a new counterparty
+      operationId: addCounterparty
+      security:
+        - AccessToken: [write]
+      tags:
+        - counterparties
+      requestBody:
+        description: Counterparty to add
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCounterpartyRequest"
+      responses:
+        '200':
+          description: Added counterparty
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Counterparty"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Counterparty:
+      type: object
+      required:
+        - id
+        - name
+        - state
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        profile_type:
+          $ref: "#/components/schemas/ProfileType"
+        country:
+          $ref: "#/components/schemas/CountryCode"
+        state:
+          enum:
+            - "created"
+            - "draft"
+            - "deleted"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CounterpartyAccount"
+    CounterpartyAccount:
+      type: object
+      required:
+        - id
+        - currency
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        bank_country:
+          $ref: "#/components/schemas/CountryCode"
+        currency:
+          $ref: "#/components/schemas/Currency"
+        type:
+          enum:
+            - revolut
+            - external
+        account_no:
+          type: string
+        iban:
+          type: string
+        sort_code:
+          type: string
+        routing_number:
+          type: string
+        bic:
+          type: string
+        clabe:
+          type: string
+        recipient_charges:
+          enum:
+            - "no"
+            - expected
+    Counterparties:
+      type: array
+      items:
+        $ref: "#/components/schemas/Counterparty"
+    CreateCounterpartyRequest:
+      type: object
+      properties:
+        company_name:
+          type: string
+        profile_type:
+          $ref: "#/components/schemas/ProfileType"
+        name:
+          type: string
+        individual_name:
+          $ref: "#/components/schemas/IndividualName"
+        bank_country:
+          $ref: "#/components/schemas/CountryCode"
+        currency:
+          $ref: "#/components/schemas/Currency"
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        account_no:
+          type: string
+        iban:
+          type: string
+        sort_code:
+          type: string
+        routing_number:
+          type: string
+        bic:
+          type: string
+        clabe:
+          type: string
+        address:
+          $ref: "#/components/schemas/BeneficiaryAddress"
+    BeneficiaryAddress:
+      type: object
+      required:
+        - country
+        - postcode
+      properties:
+        street_line1:
+          type: string
+        street_line2:
+          type: string
+        region:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        postcode:
+          type: string
+    IndividualName:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+    ProfileType:
+      type: string
+      enum:
+        - personal
+        - business
+    CountryCode:
+      type: string
+      pattern: "^[A-Z]{2,3}$"
+    Currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+    Error:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: integer
+        message:
+          type: string

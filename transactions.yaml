@@ -1,0 +1,412 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Revolut for Business OpenAPI
+servers:
+  - url: https://b2b.revolut.com/api/1.0
+  - url: https://sandbox-b2b.revolut.com/api/1.0
+paths:
+  /transactions:
+    get:
+      summary: List all transactions
+      operationId: getTransactions
+      security:
+        - AccessToken: [read]
+      tags:
+        - transactions
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+        - in: query
+          name: to
+          schema:
+            type: string
+        - in: query
+          name: counterparty
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: count
+          schema:
+            type: integer
+        - in: query
+          name: type
+          schema:
+            $ref: "#/components/schemas/TransactionType"
+      responses:
+        '200':
+          description: List of business transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transactions"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /transaction/{transactionIdentifier}:
+    get:
+      summary: Info for a specific transaction
+      operationId: getTransaction
+      security:
+        - AccessToken: [read]
+      tags:
+        - transactions
+      parameters:
+        - name: transactionIdentifier
+          in: path
+          required: true
+          description: The id of the transaction or request id if id_type=request_id to retrieve
+          schema:
+            type: string
+        - name: id_type
+          in: query
+          required: false
+          description: type of the transaction identifier provided
+          schema:
+            enum: [request_id]
+      responses:
+        '200':
+          description: List of business transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /transaction/{transactionId}:
+    delete:
+      summary: Cancel transaction
+      operationId: cancelTransaction
+      security:
+        - AccessToken: [write]
+      tags:
+        - transactions
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          description: The id of the transaction
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Transaction cancelled
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /transfer:
+    post:
+      summary: Create a transfer
+      operationId: createTransfer
+      security:
+        - AccessToken: [pay]
+      tags:
+        - transfers
+      requestBody:
+        description: Transfer to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequest"
+      responses:
+        '200':
+          description: Created transfer info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResponse"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /pay:
+    post:
+      summary: Create a payemnt
+      operationId: createPayment
+      security:
+        - AccessToken: [pay]
+      tags:
+        - payments
+      requestBody:
+        description: Payment to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
+      responses:
+        '200':
+          description: Created payment info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResponse"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Transaction:
+      type: object
+      required:
+        - id
+        - type
+        - state
+        - created_at
+        - updated_at
+        - legs
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        request_id:
+          type: string
+        state:
+          $ref: "#/components/schemas/TransactionState"
+        reason_code:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        scheduled_for:
+          type: string
+          format: date
+        related_transaction_id:
+          type: string
+          format: uuid
+        merchant:
+          $ref: "#/components/schemas/TransactionMerchant"
+        reference:
+          type: string
+        legs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionLeg"
+        card:
+          $ref: "#/components/schemas/TransactionCard"
+    TransactionType:
+      enum:
+        - atm
+        - card_payment
+        - card_refund
+        - card_chargeback
+        - card_credit
+        - exchange
+        - transfer
+        - loan
+        - fee
+        - refund
+        - topup
+        - topup_return
+        - tax
+        - tax_refund
+    TransactionState:
+      enum:
+        - created
+        - pending
+        - completed
+        - declined
+        - failed
+    Transactions:
+      type: array
+      items:
+        $ref: "#/components/schemas/Transaction"
+    TransactionLeg:
+      type: object
+      required:
+        - leg_id
+        - amount
+        - currency
+        - account_id
+      properties:
+        leg_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        fee:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+        bill_amount:
+          type: number
+          format: double
+        bill_currency:
+          $ref: "#/components/schemas/Currency"
+        account_id:
+          type: string
+          format: uuid
+        counterparty:
+          $ref: "#/components/schemas/TransactionCounterparty"
+        description:
+          type: string
+        balance:
+          type: number
+          format: double
+    TransactionCounterparty:
+      type: object
+      required:
+        - account_type
+      properties:
+        id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+        account_type:
+          $ref: "#/components/schemas/TransactionCounterpartyAccountType"
+    TransactionCounterpartyAccountType:
+      enum:
+        - self
+        - revolut
+        - external
+    TransactionCard:
+      required:
+        - card_number
+      properties:
+        card_number:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone:
+          type: string
+    TransactionMerchant:
+      type: object
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        category_code:
+          type: string
+        country:
+          $ref: "#/components/schemas/CountryCode"
+    TransferRequest:
+      type: object
+      required:
+        - request_id
+        - source_account_id
+        - target_account_id
+        - amount
+        - currency
+      properties:
+        request_id:
+          type: string
+        source_account_id:
+          type: string
+          format: uuid
+        target_account_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+        reference:
+          type: string
+    TransferResponse:
+      type: object
+      required:
+        - id
+        - state
+        - created_at
+      properties:
+        id:
+          type: string
+        state:
+          $ref: "#/components/schemas/TransactionState"
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+    PaymentRequest:
+      type: object
+      required:
+        - request_id
+        - account_id
+        - receiver
+        - amount
+      properties:
+        request_id:
+          type: string
+        account_id:
+          type: string
+          format: uuid
+        receiver:
+          $ref: "#/components/schemas/PaymentReceiver"
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: "#/components/schemas/Currency"
+        reference:
+          type: string
+        schedule_for:
+          type: string
+          format: date
+    PaymentReceiver:
+      type: object
+      required:
+        - counterparty_id
+      properties:
+        counterparty_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+    CountryCode:
+      type: string
+      pattern: "^[A-Z]{2,3}$"
+    Currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+    Error:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
