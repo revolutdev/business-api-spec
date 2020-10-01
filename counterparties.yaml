@@ -184,6 +184,10 @@ components:
           type: string
         clabe:
           type: string
+        ifsc:
+          type: string
+        bsb_code:
+          type: string
         recipient_charges:
           enum:
             - "no"
@@ -223,6 +227,10 @@ components:
         bic:
           type: string
         clabe:
+          type: string
+        ifsc:
+          type: string
+        bsb_code:
           type: string
         address:
           $ref: "#/components/schemas/BeneficiaryAddress"
