@@ -29,6 +29,11 @@ paths:
             type: string
             format: uuid
         - in: query
+          name: account
+          schema:
+            type: string
+            format: uuid
+        - in: query
           name: count
           schema:
             type: integer
