@@ -1,0 +1,156 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Revolut for Business OpenAPI
+servers:
+  - url: https://b2b.revolut.com/api/2.0
+  - url: https://sandbox-b2b.revolut.com/api/2.0
+paths:
+  /webhooks:
+    post:
+      summary: Create new webhook
+      operationId: createWebhook
+      security:
+        - AccessToken: [ write ]
+      tags:
+        - webhooks
+      requestBody:
+        description: URL to set up as a webhook
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Url"
+      responses:
+        '201':
+          description: An existing webhook
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Webhook"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      summary: List of all existing webhooks
+      operationId: getWebhooks
+      security:
+        - AccessToken: [ read ]
+      tags:
+        - webhooks
+      responses:
+        '200':
+          description: All existing webhooks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Webhooks"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /webhooks/{webhookId}:
+    patch:
+      summary: Update webhook url
+      operationId: updateWebhook
+      security:
+        - AccessToken: [ write ]
+      tags:
+        - webhooks
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          description: The id of the webhook
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New webhook url
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Url"
+      responses:
+        '200':
+          description: An updated webhook
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Webhook"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete a webhook
+      operationId: deleteWebhook
+      security:
+        - AccessToken: [ write ]
+      tags:
+        - webhooks
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          description: The id of the webhook
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Webhook has been deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Url:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+    Webhook:
+      type: object
+      required:
+        - id
+        - url
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+    Webhooks:
+      type: array
+      items:
+        $ref: "#/components/schemas/Webhook"
+    Error:
+      type: object
+      required:
+        - message
+        - code
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
