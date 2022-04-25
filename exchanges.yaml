@@ -177,3 +177,10 @@ components:
           type: integer
         message:
           type: string
+        params:
+          $ref: "#/components/schemas/Params"
+    Params:
+      type: object
+      properties:
+        currency:
+          $ref: "#/components/schemas/Currency"
